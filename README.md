@@ -30,32 +30,53 @@ DEBUG_MESSAGES=false
 DEBUG_REQUESTS=false
 
 # gRPC 监听地址
-GRPC_ADDR=:50051
+GRPC_ADDR="50051"
 
 # Chat 流参数
-CHAT_SYSTEM_PROMPT=你是一个简洁、可靠的助手。
-CHAT_CONTEXT_TRIM_TOKEN_THRESHOLD=0
-CHAT_CONTEXT_KEEP_RECENT_ROUNDS=6
-CHAT_TEMPERATURE=0.3
-CHAT_TOP_P=0.9
-CHAT_MAX_TOKENS=2048
-CHAT_PRESENCE_PENALTY=0
-CHAT_FREQUENCY_PENALTY=0
-CHAT_SEED=0
-CHAT_REQUEST_TIMEOUT=5m
+# Chat 的 system prompt，留空表示不注入。
+CHAT_SYSTEM_PROMPT="你是一个有帮助的助手。"
+# Chat 上下文裁剪阈值，0 表示关闭。
+CHAT_CONTEXT_TRIM_TOKEN_THRESHOLD="20000"
+# Chat 裁剪后保留的最近轮数。
+CHAT_CONTEXT_KEEP_RECENT_ROUNDS="5"
+# Chat 采样温度，留空表示不传。
+CHAT_TEMPERATURE=
+# Chat nucleus sampling 阈值，留空表示不传。
+CHAT_TOP_P=
+# Chat 最大输出 token 数，留空表示不传。
+CHAT_MAX_TOKENS=
+# Chat presence penalty，留空表示不传。
+CHAT_PRESENCE_PENALTY=
+# Chat frequency penalty，留空表示不传。
+CHAT_FREQUENCY_PENALTY=
+# Chat 随机种子，留空表示不传。
+CHAT_SEED=
+# Chat 单轮请求超时，留空表示不传；也支持纯数字秒值，例如 90，或 Go duration，例如 90s、5m。
+CHAT_REQUEST_TIMEOUT="90"
 
 # Agent 流参数
-AGENT_SYSTEM_PROMPT=你是一个会优先调用工具来回答问题的助手。
-AGENT_CONTEXT_TRIM_TOKEN_THRESHOLD=0
-AGENT_CONTEXT_KEEP_RECENT_ROUNDS=6
-AGENT_TEMPERATURE=0.2
-AGENT_TOP_P=0.9
-AGENT_MAX_TOKENS=2048
-AGENT_PRESENCE_PENALTY=0
-AGENT_FREQUENCY_PENALTY=0
-AGENT_SEED=0
-AGENT_MAX_REACT_ROUNDS=20
-AGENT_REQUEST_TIMEOUT=5m
+# Agent 的 system prompt，留空表示不注入。
+AGENT_SYSTEM_PROMPT="你是一个有帮助的助手,你可以调用工具来获取信息或者完成任务。"
+# Agent 上下文裁剪阈值，0 表示关闭。
+AGENT_CONTEXT_TRIM_TOKEN_THRESHOLD="20000"
+# Agent 裁剪后保留的最近轮数。
+AGENT_CONTEXT_KEEP_RECENT_ROUNDS="5"
+# Agent 采样温度，留空表示不传。
+AGENT_TEMPERATURE=
+# Agent nucleus sampling 阈值，留空表示不传。
+AGENT_TOP_P=
+# Agent 最大输出 token 数，留空表示不传。
+AGENT_MAX_TOKENS=
+# Agent presence penalty，留空表示不传。
+AGENT_PRESENCE_PENALTY=
+# Agent frequency penalty，留空表示不传。
+AGENT_FREQUENCY_PENALTY=
+# Agent 随机种子，留空表示不传。
+AGENT_SEED=
+# Agent 最大 ReAct 轮数，留空表示不限制。
+AGENT_MAX_REACT_ROUNDS="20"
+# Agent 单轮请求超时，留空表示不传；也支持纯数字秒值，例如 90，或 Go duration，例如 90s、5m。
+AGENT_REQUEST_TIMEOUT="90"
 ```
 
 说明：
@@ -184,8 +205,3 @@ go run ./examples/grpc_client.go
 
 - `ChatStream`：普通大语言模型服务端流
 - `AgentStream`：Agent 服务端流
-
-## 参考
-
-- [gRPC 使用讲解](doc/gRPC使用讲解（go语言）.md)
-- [Minichain README](doc/MinichainREADME.md)
