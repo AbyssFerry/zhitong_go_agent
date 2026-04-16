@@ -9,19 +9,13 @@ import (
 	"github.com/abyssferry/minichain/utils"
 )
 
-const (
-	defaultTemperature    = 0.2
-	defaultRequestTimeout = 90 * time.Second
-)
-
 // Config 保存运行 minichain 所需的基础环境配置。
 type Config struct {
-	Model          string
-	APIKey         string
-	BaseURL        string
-	DebugMessages  bool
-	Temperature    float64
-	RequestTimeout time.Duration
+	Model         string
+	APIKey        string
+	BaseURL       string
+	DebugMessages bool
+	DebugRequests bool
 }
 
 // LoadConfig 从 .env 读取基础配置。
@@ -32,11 +26,9 @@ func LoadConfig(envFile string) (Config, error) {
 	}
 
 	cfg := Config{
-		Model:          strings.TrimSpace(utils.GetEnv(envMap, "MODEL", "")),
-		APIKey:         strings.TrimSpace(utils.GetEnv(envMap, "API_KEY", "")),
-		BaseURL:        strings.TrimSpace(utils.GetEnv(envMap, "BASE_URL", "")),
-		Temperature:    defaultTemperature,
-		RequestTimeout: defaultRequestTimeout,
+		Model:   strings.TrimSpace(utils.GetEnv(envMap, "MODEL", "")),
+		APIKey:  strings.TrimSpace(utils.GetEnv(envMap, "API_KEY", "")),
+		BaseURL: strings.TrimSpace(utils.GetEnv(envMap, "BASE_URL", "")),
 	}
 
 	if cfg.Model == "" {
@@ -56,58 +48,47 @@ func LoadConfig(envFile string) (Config, error) {
 	}
 	cfg.DebugMessages = debugVal
 
-	tempRaw := strings.TrimSpace(utils.GetEnv(envMap, "TEMPERATURE", ""))
-	if tempRaw != "" {
-		tempVal, parseErr := strconv.ParseFloat(tempRaw, 64)
-		if parseErr != nil {
-			return Config{}, fmt.Errorf("parse TEMPERATURE: %w", parseErr)
-		}
-		cfg.Temperature = tempVal
+	requestDebugRaw := strings.TrimSpace(utils.GetEnv(envMap, "DEBUG_REQUESTS", "false"))
+	requestDebugVal, err := strconv.ParseBool(requestDebugRaw)
+	if err != nil {
+		return Config{}, fmt.Errorf("parse DEBUG_REQUESTS: %w", err)
 	}
-
-	timeoutRaw := strings.TrimSpace(utils.GetEnv(envMap, "REQUEST_TIMEOUT", ""))
-	if timeoutRaw != "" {
-		timeoutVal, parseErr := time.ParseDuration(timeoutRaw)
-		if parseErr != nil {
-			return Config{}, fmt.Errorf("parse REQUEST_TIMEOUT: %w", parseErr)
-		}
-		cfg.RequestTimeout = timeoutVal
-	}
+	cfg.DebugRequests = requestDebugVal
 
 	return cfg, nil
 }
 
 // ChatOptions 表示普通流模型构造参数。
 type ChatOptions struct {
-	Model                    string
-	SystemPrompt             string
+	Model                     string
+	SystemPrompt              string
 	ContextTrimTokenThreshold int
 	ContextKeepRecentRounds   int
-	Temperature              *float64
-	TopP                     *float64
-	MaxTokens                *int
-	Stop                     []string
-	PresencePenalty          *float64
-	FrequencyPenalty         *float64
-	Seed                     *int
-	RequestTimeout           *time.Duration
-	DebugMessages            bool
+	Temperature               *float64
+	TopP                      *float64
+	MaxTokens                 *int
+	Stop                      []string
+	PresencePenalty           *float64
+	FrequencyPenalty          *float64
+	Seed                      *int
+	RequestTimeout            *time.Duration
+	DebugMessages             bool
 }
 
 // AgentOptions 表示 Agent 构造参数。
 type AgentOptions struct {
-	Model                    string
-	SystemPrompt             string
+	Model                     string
+	SystemPrompt              string
 	ContextTrimTokenThreshold int
 	ContextKeepRecentRounds   int
-	Temperature              *float64
-	TopP                     *float64
-	MaxTokens                *int
-	Stop                     []string
-	PresencePenalty          *float64
-	FrequencyPenalty         *float64
-	Seed                     *int
-	RequestTimeout           *time.Duration
-	DebugMessages            bool
-	MaxReactRounds           int
+	Temperature               *float64
+	TopP                      *float64
+	MaxTokens                 *int
+	Stop                      []string
+	PresencePenalty           *float64
+	FrequencyPenalty          *float64
+	Seed                      *int
+	RequestTimeout            *time.Duration
+	DebugMessages             bool
+	MaxReactRounds            int
 }

@@ -16,8 +16,8 @@ type Server struct {
 }
 
 // NewServer 创建并注册 gRPC 服务。
-func NewServer(listenAddr string, cfg appllm.Config) (*Server, error) {
-	listener, err := net.Listen("tcp", listenAddr)
+func NewServer(cfg appllm.RuntimeConfig) (*Server, error) {
+	listener, err := net.Listen("tcp", cfg.ListenAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +47,8 @@ func (s *Server) GracefulStop() {
 }
 
 // Run 启动 gRPC 服务并监听退出信号。
-func Run(listenAddr string, cfg appllm.Config) error {
-	grpcServer, err := NewServer(listenAddr, cfg)
+func Run(cfg appllm.RuntimeConfig) error {
+	grpcServer, err := NewServer(cfg)
 	if err != nil {
 		return err
 	}

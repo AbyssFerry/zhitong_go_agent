@@ -12,18 +12,15 @@ import (
 )
 
 func main() {
-	cfg, err := appllm.LoadConfig(".env")
+	cfg, err := appllm.LoadRuntimeConfig(".env")
 	if err != nil {
 		log.Fatalf("load config: %v", err)
 	}
 
-	listenAddr := os.Getenv("GRPC_ADDR")
-	if listenAddr == "" {
-		listenAddr = ":50051"
-	}
-	listenAddr = normalizeListenAddr(listenAddr)
+	listenAddr := normalizeListenAddr(cfg.ListenAddr)
+	cfg.ListenAddr = listenAddr
 
-	grpcServer, err := api.NewServer(listenAddr, cfg)
+	grpcServer, err := api.NewServer(cfg)
 	if err != nil {
 		log.Fatalf("create grpc server: %v", err)
 	}

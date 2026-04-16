@@ -22,22 +22,61 @@
 启动前先准备 `.env`，至少包含以下内容：
 
 ```env
+# 基础配置
 MODEL=gpt-5-nano
 API_KEY=your_api_key
 BASE_URL=https://api.openai.com/v1
 DEBUG_MESSAGES=false
+DEBUG_REQUESTS=false
+
+# gRPC 监听地址
+GRPC_ADDR=:50051
+
+# Chat 流参数
+CHAT_SYSTEM_PROMPT=你是一个简洁、可靠的助手。
+CHAT_CONTEXT_TRIM_TOKEN_THRESHOLD=0
+CHAT_CONTEXT_KEEP_RECENT_ROUNDS=6
+CHAT_TEMPERATURE=0.3
+CHAT_TOP_P=0.9
+CHAT_MAX_TOKENS=2048
+CHAT_PRESENCE_PENALTY=0
+CHAT_FREQUENCY_PENALTY=0
+CHAT_SEED=0
+CHAT_REQUEST_TIMEOUT=5m
+
+# Agent 流参数
+AGENT_SYSTEM_PROMPT=你是一个会优先调用工具来回答问题的助手。
+AGENT_CONTEXT_TRIM_TOKEN_THRESHOLD=0
+AGENT_CONTEXT_KEEP_RECENT_ROUNDS=6
+AGENT_TEMPERATURE=0.2
+AGENT_TOP_P=0.9
+AGENT_MAX_TOKENS=2048
+AGENT_PRESENCE_PENALTY=0
+AGENT_FREQUENCY_PENALTY=0
+AGENT_SEED=0
+AGENT_MAX_REACT_ROUNDS=20
+AGENT_REQUEST_TIMEOUT=5m
 ```
 
-可选配置：
+说明：
 
-- `GRPC_ADDR`：gRPC 监听地址，默认 `:50051`
-- `TEMPERATURE`：采样温度
-- `REQUEST_TIMEOUT`：请求超时时间，例如 `90s`
+- 没有写入的 Chat/Agent 参数会保持空值或零值，不会再由 Go 代码补默认值。
+- `DEBUG_MESSAGES` 只控制 minichain 内部的消息调试输出。
+- `DEBUG_REQUESTS` 只控制本项目服务端对请求和响应的结构化调试输出。
+- `CHAT_CONTEXT_TRIM_TOKEN_THRESHOLD`、`AGENT_CONTEXT_TRIM_TOKEN_THRESHOLD` 设为 `0` 时表示不启用裁剪。
+- `CHAT_REQUEST_TIMEOUT` 和 `AGENT_REQUEST_TIMEOUT` 支持两种写法：`90` 会按 90 秒处理，`90s`、`5m` 这类 Go duration 也可以。
 
 `GRPC_ADDR` 支持两种写法：
 
 - `:50051`
 - `50051`，程序会自动转换成 `:50051`
+
+当前 gRPC 请求已经收敛为只传单条文本：
+
+- `ChatStreamRequest.message`
+- `AgentStreamRequest.message`
+
+Rust 端只需要把语音识别后的文本填到 `message`，其余模型参数全部由 Go 服务端从 `.env` 读取。
 
 ## 运行服务
 
@@ -100,14 +139,18 @@ go run ./examples/grpc_client.go
 - `ChatStream`：普通流式回答
 - `AgentStream`：Agent 流式回答，并触发当前时间工具
 
-`examples/grpc_client.go` 顶部已经集中定义了本次请求参数，后续你只需要改这些变量就能调整：
+`examples/grpc_client.go` 现在只负责发送示例文本：
 
-- 模型和系统提示词
-- `max_tokens`
-- `temperature` / `top_p`
-- `request_timeout`
-- `max_react_rounds`
-- 是否开启 `debug_messages`
+- `ChatStreamRequest.message`
+- `AgentStreamRequest.message`
+
+服务端会从 `.env` 读取并固定以下参数：
+
+- 模型连接信息
+- 全局调试开关
+- Chat 流默认参数
+- Agent 流默认参数
+- gRPC 监听地址
 
 ### 4. 观察输出
 

@@ -1,44 +1,22 @@
 package api
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
 	minillm "github.com/abyssferry/minichain/llm"
-	"github.com/abyssferry/zhitong_go_agent/pb"
-	"google.golang.org/protobuf/types/known/durationpb"
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
+	appllm "github.com/abyssferry/zhitong_go_agent/llm"
 )
 
-func TestChatOptionsFromRequestMapsFields(t *testing.T) {
-	request := &pb.ChatStreamRequest{
-		Model:                     "qwen-test",
-		SystemPrompt:              "system",
-		ContextTrimTokenThreshold: 32,
-		ContextKeepRecentRounds:   4,
-		Temperature:               wrapperspb.Double(0.7),
-		TopP:                      wrapperspb.Double(0.9),
-		MaxTokens:                 wrapperspb.Int32(1024),
-		Stop:                      []string{"stop"},
-		PresencePenalty:           wrapperspb.Double(0.1),
-		FrequencyPenalty:          wrapperspb.Double(0.2),
-		Seed:                      wrapperspb.Int32(42),
-		RequestTimeout:            durationpb.New(12 * time.Second),
-		DebugMessages:             true,
+func TestSingleUserMessageWrapsContent(t *testing.T) {
+	messages := singleUserMessage("hello")
+	if len(messages) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(messages))
 	}
-
-	options := chatOptionsFromRequest(request)
-	if options.Model != "qwen-test" || options.SystemPrompt != "system" {
-		t.Fatalf("unexpected basic fields: %+v", options)
-	}
-	if options.ContextTrimTokenThreshold != 32 || options.ContextKeepRecentRounds != 4 {
-		t.Fatalf("unexpected context fields: %+v", options)
-	}
-	if options.MaxTokens == nil || *options.MaxTokens != 1024 {
-		t.Fatalf("unexpected max tokens: %+v", options.MaxTokens)
-	}
-	if options.RequestTimeout == nil || *options.RequestTimeout != 12*time.Second {
-		t.Fatalf("unexpected timeout: %+v", options.RequestTimeout)
+	if messages[0].Role != "user" || messages[0].Content != "hello" {
+		t.Fatalf("unexpected message: %+v", messages[0])
 	}
 }
 
@@ -77,3 +55,105 @@ func TestSummaryToProtoPreservesUsageAndToolCalls(t *testing.T) {
 		t.Fatalf("unexpected tool calls: %+v", response.GetToolCalls())
 	}
 }
+
+func TestBuildChatRequestLogIncludesSystemAndUserMessages(t *testing.T) {
+	requestTimeout := 90 * time.Second
+	request := buildChatRequestLog(appllm.Config{Model: "gpt-test", BaseURL: "https://example.com/v1", APIKey: "secret", DebugMessages: true, DebugRequests: true}, appllm.ChatOptions{
+		Model:          "gpt-test",
+		SystemPrompt:   "system prompt",
+		Temperature:    float64Ptr(0.2),
+		TopP:           float64Ptr(0.9),
+		MaxTokens:      intPtr(128),
+		RequestTimeout: &requestTimeout,
+	}, "hello")
+
+	if request.Constructor != "appllm.NewChatModel" {
+		t.Fatalf("unexpected constructor: %s", request.Constructor)
+	}
+	if request.Config.Model != "gpt-test" || !request.Config.APIKeySet {
+		t.Fatalf("unexpected config payload: %+v", request.Config)
+	}
+	if request.Options.SystemPrompt != "system prompt" || request.Options.Model != "gpt-test" {
+		t.Fatalf("unexpected options payload: %+v", request.Options)
+	}
+	if len(request.Input.Messages) != 2 {
+		t.Fatalf("unexpected messages length: %d", len(request.Input.Messages))
+	}
+	if request.Input.Messages[0].Role != "system" || request.Input.Messages[0].Content != "system prompt" {
+		t.Fatalf("unexpected first message: %+v", request.Input.Messages[0])
+	}
+	if request.Input.Messages[1].Role != "user" || request.Input.Messages[1].Content != "hello" {
+		t.Fatalf("unexpected second message: %+v", request.Input.Messages[1])
+	}
+	if request.Options.RequestTimeout == nil || *request.Options.RequestTimeout != "90s" {
+		t.Fatalf("unexpected request timeout debug value: %+v", request.Options.RequestTimeout)
+	}
+}
+
+func TestBuildAgentRequestLogIncludesToolsAndStreamSettings(t *testing.T) {
+	requestTimeout := 1500 * time.Millisecond
+	request := buildAgentRequestLog(appllm.Config{Model: "gpt-agent", BaseURL: "https://example.com/v1", APIKey: "secret", DebugMessages: true, DebugRequests: true}, appllm.AgentOptions{
+		Model:          "gpt-agent",
+		SystemPrompt:   "agent system",
+		MaxReactRounds: 20,
+		RequestTimeout: &requestTimeout,
+	}, []minillm.ToolDefinition{{Type: "function"}}, "hello")
+
+	if request.Constructor != "appllm.NewAgent" {
+		t.Fatalf("unexpected constructor: %s", request.Constructor)
+	}
+	if request.Config.Model != "gpt-agent" || !request.Config.APIKeySet {
+		t.Fatalf("unexpected config payload: %+v", request.Config)
+	}
+	if request.Options.MaxReactRounds != 20 || request.Options.SystemPrompt != "agent system" {
+		t.Fatalf("unexpected options payload: %+v", request.Options)
+	}
+	if len(request.Options.Tools) != 1 {
+		t.Fatalf("unexpected tools length: %d", len(request.Options.Tools))
+	}
+	if len(request.Input.Messages) != 2 {
+		t.Fatalf("unexpected messages length: %d", len(request.Input.Messages))
+	}
+	if request.Options.RequestTimeout == nil || *request.Options.RequestTimeout != "1.5s" {
+		t.Fatalf("unexpected request timeout debug value: %+v", request.Options.RequestTimeout)
+	}
+}
+
+func TestBuildChatRequestLogKeepsEmptyFieldsInJSON(t *testing.T) {
+	request := buildChatRequestLog(appllm.Config{}, appllm.ChatOptions{}, "")
+	payload, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("marshal request failed: %v", err)
+	}
+
+	text := string(payload)
+	if !containsAll(text, []string{`"model":""`, `"base_url":""`, `"system_prompt":""`, `"temperature":null`, `"request_timeout":null`, `"messages"`}) {
+		t.Fatalf("unexpected empty-field payload: %s", text)
+	}
+}
+
+func TestBuildAgentRequestLogKeepsEmptyFieldsInJSON(t *testing.T) {
+	request := buildAgentRequestLog(appllm.Config{}, appllm.AgentOptions{}, nil, "")
+	payload, err := json.Marshal(request)
+	if err != nil {
+		t.Fatalf("marshal request failed: %v", err)
+	}
+
+	text := string(payload)
+	if !containsAll(text, []string{`"model":""`, `"base_url":""`, `"system_prompt":""`, `"temperature":null`, `"request_timeout":null`, `"tools":null`, `"messages"`}) {
+		t.Fatalf("unexpected empty-field payload: %s", text)
+	}
+}
+
+func containsAll(text string, parts []string) bool {
+	for _, part := range parts {
+		if !strings.Contains(text, part) {
+			return false
+		}
+	}
+	return true
+}
+
+func float64Ptr(value float64) *float64 { return &value }
+
+func intPtr(value int) *int { return &value }

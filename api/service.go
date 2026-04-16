@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -11,25 +13,18 @@ import (
 	appllm "github.com/abyssferry/zhitong_go_agent/llm"
 	"github.com/abyssferry/zhitong_go_agent/pb"
 	"github.com/abyssferry/zhitong_go_agent/tool"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/structpb"
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-)
-
-const (
-	defaultChatSystemPrompt  = "You are a concise and reliable assistant."
-	defaultAgentSystemPrompt = "You are a helpful assistant. Use tools whenever needed to provide accurate answers."
 )
 
 // ZhitongAgentService 实现 proto 中的单一 gRPC service。
 type ZhitongAgentService struct {
 	pb.UnimplementedZhitongAgentServer
-	cfg   appllm.Config
+	cfg   appllm.RuntimeConfig
 	tools *minillm.ToolRegistry
 }
 
 // NewZhitongAgentService 创建服务实例。
-func NewZhitongAgentService(cfg appllm.Config) (*ZhitongAgentService, error) {
+func NewZhitongAgentService(cfg appllm.RuntimeConfig) (*ZhitongAgentService, error) {
 	registry, err := tool.NewRegistry()
 	if err != nil {
 		return nil, err
@@ -39,48 +34,62 @@ func NewZhitongAgentService(cfg appllm.Config) (*ZhitongAgentService, error) {
 
 // ChatStream 使用 minichain 普通流能力返回逐步事件。
 func (s *ZhitongAgentService) ChatStream(req *pb.ChatStreamRequest, stream pb.ZhitongAgent_ChatStreamServer) error {
-	options := chatOptionsFromRequest(req)
-	if strings.TrimSpace(options.SystemPrompt) == "" {
-		options.SystemPrompt = defaultChatSystemPrompt
+	if req == nil {
+		return sendError(stream.Context(), stream, fmt.Errorf("message is required"))
+	}
+	message := strings.TrimSpace(req.GetMessage())
+	if message == "" {
+		return sendError(stream.Context(), stream, fmt.Errorf("message is required"))
 	}
 
-	model, err := appllm.NewChatModel(s.cfg, options)
+	options := s.cfg.ChatOptions()
+	if s.cfg.Base.DebugRequests {
+		logDebugJSON("chat_request", buildChatRequestLog(s.cfg.Base, options, message))
+	}
+	model, err := appllm.NewChatModel(s.cfg.Base, options)
 	if err != nil {
 		return sendError(stream.Context(), stream, fmt.Errorf("init chat model: %w", err))
 	}
 
-	result, err := model.Stream(minillm.InvokeInput{Messages: messagesFromProto(req.GetMessages())})
+	result, err := model.Stream(minillm.InvokeInput{Messages: singleUserMessage(message)})
 	if err != nil {
 		return sendError(stream.Context(), stream, fmt.Errorf("start chat stream: %w", err))
 	}
 
-	return relayStream(stream.Context(), result, stream)
+	return relayStream(stream.Context(), result, stream, s.cfg.Base.DebugRequests, "chat")
 }
 
 // AgentStream 使用 minichain Agent 流能力返回逐步事件。
 func (s *ZhitongAgentService) AgentStream(req *pb.AgentStreamRequest, stream pb.ZhitongAgent_AgentStreamServer) error {
-	options := agentOptionsFromRequest(req)
-	if strings.TrimSpace(options.SystemPrompt) == "" {
-		options.SystemPrompt = defaultAgentSystemPrompt
+	if req == nil {
+		return sendError(stream.Context(), stream, fmt.Errorf("message is required"))
 	}
-	options.MaxReactRounds = int(req.GetMaxReactRounds())
+	message := strings.TrimSpace(req.GetMessage())
+	if message == "" {
+		return sendError(stream.Context(), stream, fmt.Errorf("message is required"))
+	}
 
-	agent, err := appllm.NewAgent(s.cfg, options, s.tools)
+	options := s.cfg.AgentOptions()
+	if s.cfg.Base.DebugRequests {
+		logDebugJSON("agent_request", buildAgentRequestLog(s.cfg.Base, options, s.tools.Definitions(), message))
+	}
+
+	agent, err := appllm.NewAgent(s.cfg.Base, options, s.tools)
 	if err != nil {
 		return sendError(stream.Context(), stream, fmt.Errorf("init agent: %w", err))
 	}
 
-	result, err := agent.Stream(minillm.InvokeInput{Messages: messagesFromProto(req.GetMessages())})
+	result, err := agent.Stream(minillm.InvokeInput{Messages: singleUserMessage(message)})
 	if err != nil {
 		return sendError(stream.Context(), stream, fmt.Errorf("start agent stream: %w", err))
 	}
 
-	return relayStream(stream.Context(), result, stream)
+	return relayStream(stream.Context(), result, stream, s.cfg.Base.DebugRequests, "agent")
 }
 
 func relayStream(ctx context.Context, result *minillm.StreamResult, stream interface {
 	Send(*pb.StreamResponse) error
-}) error {
+}, debug bool, stage string) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -89,7 +98,15 @@ func relayStream(ctx context.Context, result *minillm.StreamResult, stream inter
 			if !ok {
 				summary, waitErr := result.Wait()
 				if waitErr != nil {
+					if debug {
+						logDebugJSON(stage+"_response_error", map[string]any{
+							"error": waitErr.Error(),
+						})
+					}
 					return sendError(ctx, stream, waitErr)
+				}
+				if debug {
+					logDebugJSON(stage+"_response", summary)
 				}
 				return stream.Send(summaryToProto(summary))
 			}
@@ -109,23 +126,8 @@ func sendError(ctx context.Context, stream interface {
 	return stream.Send(&pb.StreamResponse{EventType: "error", Error: err.Error()})
 }
 
-func messagesFromProto(messages []*pb.Message) []minillm.Message {
-	if len(messages) == 0 {
-		return nil
-	}
-	converted := make([]minillm.Message, 0, len(messages))
-	for _, message := range messages {
-		if message == nil {
-			continue
-		}
-		converted = append(converted, minillm.Message{
-			Role:       message.GetRole(),
-			Content:    message.GetContent(),
-			ToolCallID: message.GetToolCallId(),
-			ToolCalls:  toolCallsFromProto(message.GetToolCalls()),
-		})
-	}
-	return converted
+func singleUserMessage(content string) []minillm.Message {
+	return []minillm.Message{{Role: "user", Content: content}}
 }
 
 func toolCallsFromProto(toolCalls []*pb.ToolCall) []minillm.ToolCall {
@@ -152,73 +154,6 @@ func toolCallsFromProto(toolCalls []*pb.ToolCall) []minillm.ToolCall {
 		})
 	}
 	return converted
-}
-
-func chatOptionsFromRequest(req *pb.ChatStreamRequest) appllm.ChatOptions {
-	if req == nil {
-		return appllm.ChatOptions{}
-	}
-	return appllm.ChatOptions{
-		Model:                     req.GetModel(),
-		SystemPrompt:              req.GetSystemPrompt(),
-		ContextTrimTokenThreshold: int(req.GetContextTrimTokenThreshold()),
-		ContextKeepRecentRounds:   int(req.GetContextKeepRecentRounds()),
-		Temperature:               doubleValue(req.GetTemperature()),
-		TopP:                      doubleValue(req.GetTopP()),
-		MaxTokens:                 intValue(req.GetMaxTokens()),
-		Stop:                      append([]string(nil), req.GetStop()...),
-		PresencePenalty:           doubleValue(req.GetPresencePenalty()),
-		FrequencyPenalty:          doubleValue(req.GetFrequencyPenalty()),
-		Seed:                      intValue(req.GetSeed()),
-		RequestTimeout:            durationValue(req.GetRequestTimeout()),
-		DebugMessages:             req.GetDebugMessages(),
-	}
-}
-
-func agentOptionsFromRequest(req *pb.AgentStreamRequest) appllm.AgentOptions {
-	if req == nil {
-		return appllm.AgentOptions{}
-	}
-	return appllm.AgentOptions{
-		Model:                     req.GetModel(),
-		SystemPrompt:              req.GetSystemPrompt(),
-		ContextTrimTokenThreshold: int(req.GetContextTrimTokenThreshold()),
-		ContextKeepRecentRounds:   int(req.GetContextKeepRecentRounds()),
-		Temperature:               doubleValue(req.GetTemperature()),
-		TopP:                      doubleValue(req.GetTopP()),
-		MaxTokens:                 intValue(req.GetMaxTokens()),
-		Stop:                      append([]string(nil), req.GetStop()...),
-		PresencePenalty:           doubleValue(req.GetPresencePenalty()),
-		FrequencyPenalty:          doubleValue(req.GetFrequencyPenalty()),
-		Seed:                      intValue(req.GetSeed()),
-		RequestTimeout:            durationValue(req.GetRequestTimeout()),
-		DebugMessages:             req.GetDebugMessages(),
-		MaxReactRounds:            int(req.GetMaxReactRounds()),
-	}
-}
-
-func doubleValue(value *wrapperspb.DoubleValue) *float64 {
-	if value == nil {
-		return nil
-	}
-	v := value.GetValue()
-	return &v
-}
-
-func intValue(value interface{ GetValue() int32 }) *int {
-	if value == nil {
-		return nil
-	}
-	v := int(value.GetValue())
-	return &v
-}
-
-func durationValue(value *durationpb.Duration) *time.Duration {
-	if value == nil {
-		return nil
-	}
-	d := value.AsDuration()
-	return &d
 }
 
 func eventToProto(event minillm.StreamEvent) *pb.StreamResponse {
@@ -293,4 +228,152 @@ func mapToStruct(data map[string]any) *structpb.Struct {
 		return nil
 	}
 	return result
+}
+
+func logDebugJSON(stage string, value any) {
+	payload, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		log.Printf("[debug][%s] marshal failed: %v", stage, err)
+		return
+	}
+	log.Printf("[debug][%s]\n%s", stage, payload)
+}
+
+func buildChatRequestLog(cfg appllm.Config, options appllm.ChatOptions, message string) chatRequestDebugPayload {
+	return chatRequestDebugPayload{
+		Constructor: "appllm.NewChatModel",
+		Config: requestDebugConfig{
+			Model:         cfg.Model,
+			BaseURL:       cfg.BaseURL,
+			APIKeySet:     strings.TrimSpace(cfg.APIKey) != "",
+			DebugMessages: cfg.DebugMessages,
+			DebugRequests: cfg.DebugRequests,
+		},
+		Options: chatOptionsDebugPayload{
+			Model:                     strings.TrimSpace(options.Model),
+			SystemPrompt:              options.SystemPrompt,
+			ContextTrimTokenThreshold: options.ContextTrimTokenThreshold,
+			ContextKeepRecentRounds:   options.ContextKeepRecentRounds,
+			Temperature:               options.Temperature,
+			TopP:                      options.TopP,
+			MaxTokens:                 options.MaxTokens,
+			Stop:                      append([]string(nil), options.Stop...),
+			PresencePenalty:           options.PresencePenalty,
+			FrequencyPenalty:          options.FrequencyPenalty,
+			Seed:                      options.Seed,
+			RequestTimeout:            durationToSecondsString(options.RequestTimeout),
+			DebugMessages:             options.DebugMessages,
+		},
+		Input: requestDebugInput{
+			Messages: []minillm.Message{
+				{Role: "system", Content: strings.TrimSpace(options.SystemPrompt)},
+				{Role: "user", Content: message},
+			},
+		},
+	}
+}
+
+func buildAgentRequestLog(cfg appllm.Config, options appllm.AgentOptions, tools []minillm.ToolDefinition, message string) agentRequestDebugPayload {
+	return agentRequestDebugPayload{
+		Constructor: "appllm.NewAgent",
+		Config: requestDebugConfig{
+			Model:         cfg.Model,
+			BaseURL:       cfg.BaseURL,
+			APIKeySet:     strings.TrimSpace(cfg.APIKey) != "",
+			DebugMessages: cfg.DebugMessages,
+			DebugRequests: cfg.DebugRequests,
+		},
+		Options: agentOptionsDebugPayload{
+			Model:                     strings.TrimSpace(options.Model),
+			SystemPrompt:              options.SystemPrompt,
+			ContextTrimTokenThreshold: options.ContextTrimTokenThreshold,
+			ContextKeepRecentRounds:   options.ContextKeepRecentRounds,
+			Temperature:               options.Temperature,
+			TopP:                      options.TopP,
+			MaxTokens:                 options.MaxTokens,
+			Stop:                      append([]string(nil), options.Stop...),
+			PresencePenalty:           options.PresencePenalty,
+			FrequencyPenalty:          options.FrequencyPenalty,
+			Seed:                      options.Seed,
+			RequestTimeout:            durationToSecondsString(options.RequestTimeout),
+			DebugMessages:             options.DebugMessages,
+			MaxReactRounds:            options.MaxReactRounds,
+			Tools:                     append([]minillm.ToolDefinition(nil), tools...),
+		},
+		Input: requestDebugInput{
+			Messages: []minillm.Message{
+				{Role: "system", Content: strings.TrimSpace(options.SystemPrompt)},
+				{Role: "user", Content: message},
+			},
+		},
+	}
+}
+
+type requestDebugConfig struct {
+	Model         string `json:"model"`
+	BaseURL       string `json:"base_url"`
+	APIKeySet     bool   `json:"api_key_set"`
+	DebugMessages bool   `json:"debug_messages"`
+	DebugRequests bool   `json:"debug_requests"`
+}
+
+type requestDebugInput struct {
+	Messages []minillm.Message `json:"messages"`
+}
+
+type chatOptionsDebugPayload struct {
+	Model                     string   `json:"model"`
+	SystemPrompt              string   `json:"system_prompt"`
+	ContextTrimTokenThreshold int      `json:"context_trim_token_threshold"`
+	ContextKeepRecentRounds   int      `json:"context_keep_recent_rounds"`
+	Temperature               *float64 `json:"temperature"`
+	TopP                      *float64 `json:"top_p"`
+	MaxTokens                 *int     `json:"max_tokens"`
+	Stop                      []string `json:"stop"`
+	PresencePenalty           *float64 `json:"presence_penalty"`
+	FrequencyPenalty          *float64 `json:"frequency_penalty"`
+	Seed                      *int     `json:"seed"`
+	RequestTimeout            *string  `json:"request_timeout"`
+	DebugMessages             bool     `json:"debug_messages"`
+}
+
+type agentOptionsDebugPayload struct {
+	Model                     string                   `json:"model"`
+	SystemPrompt              string                   `json:"system_prompt"`
+	ContextTrimTokenThreshold int                      `json:"context_trim_token_threshold"`
+	ContextKeepRecentRounds   int                      `json:"context_keep_recent_rounds"`
+	Temperature               *float64                 `json:"temperature"`
+	TopP                      *float64                 `json:"top_p"`
+	MaxTokens                 *int                     `json:"max_tokens"`
+	Stop                      []string                 `json:"stop"`
+	PresencePenalty           *float64                 `json:"presence_penalty"`
+	FrequencyPenalty          *float64                 `json:"frequency_penalty"`
+	Seed                      *int                     `json:"seed"`
+	RequestTimeout            *string                  `json:"request_timeout"`
+	DebugMessages             bool                     `json:"debug_messages"`
+	MaxReactRounds            int                      `json:"max_react_rounds"`
+	Tools                     []minillm.ToolDefinition `json:"tools"`
+}
+
+func durationToSecondsString(value *time.Duration) *string {
+	if value == nil {
+		return nil
+	}
+	seconds := value.Seconds()
+	formatted := strconv.FormatFloat(seconds, 'f', -1, 64) + "s"
+	return &formatted
+}
+
+type chatRequestDebugPayload struct {
+	Constructor string                  `json:"constructor"`
+	Config      requestDebugConfig      `json:"config"`
+	Options     chatOptionsDebugPayload `json:"options"`
+	Input       requestDebugInput       `json:"input"`
+}
+
+type agentRequestDebugPayload struct {
+	Constructor string                   `json:"constructor"`
+	Config      requestDebugConfig       `json:"config"`
+	Options     agentOptionsDebugPayload `json:"options"`
+	Input       requestDebugInput        `json:"input"`
 }

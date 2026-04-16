@@ -4,9 +4,7 @@ package zhitongagent.v1;
 
 option go_package = "github.com/abyssferry/zhitong_go_agent/pb;pb";
 
-import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";
-import "google/protobuf/wrappers.proto";
 
 // ZhitongAgent 提供普通流和 Agent 流两种 gRPC 服务。
 service ZhitongAgent {
@@ -19,36 +17,36 @@ service ZhitongAgent {
 
 // Message 表示一次对话消息，与 minichain 的 Message 保持一致。
 message Message {
-  string role = 1;
-  string content = 2;
-  string tool_call_id = 3;
-  repeated ToolCall tool_calls = 4;
+  string            role         = 1;
+  string            content      = 2;
+  string            tool_call_id = 3;
+  repeated ToolCall tool_calls   = 4;
 }
 
 // ToolCallFunction 表示模型返回的函数调用信息。
 message ToolCallFunction {
-  string name = 1;
+  string name      = 1;
   string arguments = 2;
 }
 
 // ToolCall 表示模型返回的一次工具调用。
 message ToolCall {
-  string id = 1;
-  string type = 2;
+  string           id       = 1;
+  string           type     = 2;
   ToolCallFunction function = 3;
-  int32 index = 4;
+  int32            index    = 4;
 }
 
 // ToolFunction 表示工具定义信息。
 message ToolFunction {
-  string name = 1;
-  string description = 2;
-  google.protobuf.Struct parameters = 3;
+  string                 name        = 1;
+  string                 description = 2;
+  google.protobuf.Struct parameters  = 3;
 }
 
 // ToolDefinition 表示一项可调用工具。
 message ToolDefinition {
-  string type = 1;
+  string       type     = 1;
   ToolFunction function = 2;
 }
 
@@ -59,72 +57,37 @@ message StreamOptions {
 
 // Usage 表示 token 用量统计，与 minichain 保持一致。
 message Usage {
-  int64 prompt_tokens = 1;
-  int64 completion_tokens = 2;
-  int64 total_tokens = 3;
-  google.protobuf.Struct prompt_tokens_details = 4;
+  int64                  prompt_tokens             = 1;
+  int64                  completion_tokens         = 2;
+  int64                  total_tokens              = 3;
+  google.protobuf.Struct prompt_tokens_details     = 4;
   google.protobuf.Struct completion_tokens_details = 5;
 }
 
-// ChatStreamRequest 表示普通流请求参数，保留 minichain 的请求字段。
+// ChatStreamRequest 表示普通流请求，只保留用户输入文本。
 message ChatStreamRequest {
-  string model = 1;
-  repeated Message messages = 2;
-  string system_prompt = 3;
-  int64 context_trim_token_threshold = 4;
-  int64 context_keep_recent_rounds = 5;
-  google.protobuf.DoubleValue temperature = 6;
-  google.protobuf.DoubleValue top_p = 7;
-  google.protobuf.Int32Value max_tokens = 8;
-  repeated string stop = 9;
-  google.protobuf.DoubleValue presence_penalty = 10;
-  google.protobuf.DoubleValue frequency_penalty = 11;
-  google.protobuf.Int32Value seed = 12;
-  google.protobuf.Duration request_timeout = 13;
-  bool debug_messages = 14;
-  repeated ToolDefinition tools = 15;
-  bool parallel_tool_calls = 16;
-  google.protobuf.Value tool_choice = 17;
-  StreamOptions stream_options = 18;
+  string message = 1;
 }
 
-// AgentStreamRequest 表示 Agent 流请求参数，保留 minichain 的请求字段。
+// AgentStreamRequest 表示 Agent 流请求，只保留用户输入文本。
 message AgentStreamRequest {
-  string model = 1;
-  repeated Message messages = 2;
-  string system_prompt = 3;
-  int64 context_trim_token_threshold = 4;
-  int64 context_keep_recent_rounds = 5;
-  google.protobuf.DoubleValue temperature = 6;
-  google.protobuf.DoubleValue top_p = 7;
-  google.protobuf.Int32Value max_tokens = 8;
-  repeated string stop = 9;
-  google.protobuf.DoubleValue presence_penalty = 10;
-  google.protobuf.DoubleValue frequency_penalty = 11;
-  google.protobuf.Int32Value seed = 12;
-  google.protobuf.Duration request_timeout = 13;
-  bool debug_messages = 14;
-  repeated ToolDefinition tools = 15;
-  bool parallel_tool_calls = 16;
-  google.protobuf.Value tool_choice = 17;
-  StreamOptions stream_options = 18;
-  int32 max_react_rounds = 19;
+  string message = 1;
 }
 
 // StreamResponse 表示服务端流事件，并在结束时携带完整 summary。
 message StreamResponse {
-  string event_type = 1;
-  string content = 2;
-  string tool_name = 3;
-  string tool_args = 4;
-  string finish_reason = 5;
-  bool is_final = 6;
-  string error = 7;
-  repeated ToolCall tool_calls = 8;
-  Usage usage = 9;
-  string id = 10;
-  string model_name = 11;
+  string                 event_type        = 1;
+  string                 content           = 2;
+  string                 tool_name         = 3;
+  string                 tool_args         = 4;
+  string                 finish_reason     = 5;
+  bool                   is_final          = 6;
+  string                 error             = 7;
+  repeated ToolCall      tool_calls        = 8;
+  Usage                  usage             = 9;
+  string                 id                = 10;
+  string                 model_name        = 11;
   google.protobuf.Struct additional_kwargs = 12;
   google.protobuf.Struct response_metadata = 13;
-  google.protobuf.Struct usage_metadata = 14;
+  google.protobuf.Struct usage_metadata    = 14;
 }

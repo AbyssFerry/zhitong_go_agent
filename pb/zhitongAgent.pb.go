@@ -9,9 +9,7 @@ package pb
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	structpb "google.golang.org/protobuf/types/known/structpb"
-	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -451,29 +449,12 @@ func (x *Usage) GetCompletionTokensDetails() *structpb.Struct {
 	return nil
 }
 
-// ChatStreamRequest 表示普通流请求参数，保留 minichain 的请求字段。
+// ChatStreamRequest 表示普通流请求，只保留用户输入文本。
 type ChatStreamRequest struct {
-	state                     protoimpl.MessageState  `protogen:"open.v1"`
-	Model                     string                  `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
-	Messages                  []*Message              `protobuf:"bytes,2,rep,name=messages,proto3" json:"messages,omitempty"`
-	SystemPrompt              string                  `protobuf:"bytes,3,opt,name=system_prompt,json=systemPrompt,proto3" json:"system_prompt,omitempty"`
-	ContextTrimTokenThreshold int64                   `protobuf:"varint,4,opt,name=context_trim_token_threshold,json=contextTrimTokenThreshold,proto3" json:"context_trim_token_threshold,omitempty"`
-	ContextKeepRecentRounds   int64                   `protobuf:"varint,5,opt,name=context_keep_recent_rounds,json=contextKeepRecentRounds,proto3" json:"context_keep_recent_rounds,omitempty"`
-	Temperature               *wrapperspb.DoubleValue `protobuf:"bytes,6,opt,name=temperature,proto3" json:"temperature,omitempty"`
-	TopP                      *wrapperspb.DoubleValue `protobuf:"bytes,7,opt,name=top_p,json=topP,proto3" json:"top_p,omitempty"`
-	MaxTokens                 *wrapperspb.Int32Value  `protobuf:"bytes,8,opt,name=max_tokens,json=maxTokens,proto3" json:"max_tokens,omitempty"`
-	Stop                      []string                `protobuf:"bytes,9,rep,name=stop,proto3" json:"stop,omitempty"`
-	PresencePenalty           *wrapperspb.DoubleValue `protobuf:"bytes,10,opt,name=presence_penalty,json=presencePenalty,proto3" json:"presence_penalty,omitempty"`
-	FrequencyPenalty          *wrapperspb.DoubleValue `protobuf:"bytes,11,opt,name=frequency_penalty,json=frequencyPenalty,proto3" json:"frequency_penalty,omitempty"`
-	Seed                      *wrapperspb.Int32Value  `protobuf:"bytes,12,opt,name=seed,proto3" json:"seed,omitempty"`
-	RequestTimeout            *durationpb.Duration    `protobuf:"bytes,13,opt,name=request_timeout,json=requestTimeout,proto3" json:"request_timeout,omitempty"`
-	DebugMessages             bool                    `protobuf:"varint,14,opt,name=debug_messages,json=debugMessages,proto3" json:"debug_messages,omitempty"`
-	Tools                     []*ToolDefinition       `protobuf:"bytes,15,rep,name=tools,proto3" json:"tools,omitempty"`
-	ParallelToolCalls         bool                    `protobuf:"varint,16,opt,name=parallel_tool_calls,json=parallelToolCalls,proto3" json:"parallel_tool_calls,omitempty"`
-	ToolChoice                *structpb.Value         `protobuf:"bytes,17,opt,name=tool_choice,json=toolChoice,proto3" json:"tool_choice,omitempty"`
-	StreamOptions             *StreamOptions          `protobuf:"bytes,18,opt,name=stream_options,json=streamOptions,proto3" json:"stream_options,omitempty"`
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ChatStreamRequest) Reset() {
@@ -506,156 +487,19 @@ func (*ChatStreamRequest) Descriptor() ([]byte, []int) {
 	return file_zhitongAgent_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *ChatStreamRequest) GetModel() string {
+func (x *ChatStreamRequest) GetMessage() string {
 	if x != nil {
-		return x.Model
+		return x.Message
 	}
 	return ""
 }
 
-func (x *ChatStreamRequest) GetMessages() []*Message {
-	if x != nil {
-		return x.Messages
-	}
-	return nil
-}
-
-func (x *ChatStreamRequest) GetSystemPrompt() string {
-	if x != nil {
-		return x.SystemPrompt
-	}
-	return ""
-}
-
-func (x *ChatStreamRequest) GetContextTrimTokenThreshold() int64 {
-	if x != nil {
-		return x.ContextTrimTokenThreshold
-	}
-	return 0
-}
-
-func (x *ChatStreamRequest) GetContextKeepRecentRounds() int64 {
-	if x != nil {
-		return x.ContextKeepRecentRounds
-	}
-	return 0
-}
-
-func (x *ChatStreamRequest) GetTemperature() *wrapperspb.DoubleValue {
-	if x != nil {
-		return x.Temperature
-	}
-	return nil
-}
-
-func (x *ChatStreamRequest) GetTopP() *wrapperspb.DoubleValue {
-	if x != nil {
-		return x.TopP
-	}
-	return nil
-}
-
-func (x *ChatStreamRequest) GetMaxTokens() *wrapperspb.Int32Value {
-	if x != nil {
-		return x.MaxTokens
-	}
-	return nil
-}
-
-func (x *ChatStreamRequest) GetStop() []string {
-	if x != nil {
-		return x.Stop
-	}
-	return nil
-}
-
-func (x *ChatStreamRequest) GetPresencePenalty() *wrapperspb.DoubleValue {
-	if x != nil {
-		return x.PresencePenalty
-	}
-	return nil
-}
-
-func (x *ChatStreamRequest) GetFrequencyPenalty() *wrapperspb.DoubleValue {
-	if x != nil {
-		return x.FrequencyPenalty
-	}
-	return nil
-}
-
-func (x *ChatStreamRequest) GetSeed() *wrapperspb.Int32Value {
-	if x != nil {
-		return x.Seed
-	}
-	return nil
-}
-
-func (x *ChatStreamRequest) GetRequestTimeout() *durationpb.Duration {
-	if x != nil {
-		return x.RequestTimeout
-	}
-	return nil
-}
-
-func (x *ChatStreamRequest) GetDebugMessages() bool {
-	if x != nil {
-		return x.DebugMessages
-	}
-	return false
-}
-
-func (x *ChatStreamRequest) GetTools() []*ToolDefinition {
-	if x != nil {
-		return x.Tools
-	}
-	return nil
-}
-
-func (x *ChatStreamRequest) GetParallelToolCalls() bool {
-	if x != nil {
-		return x.ParallelToolCalls
-	}
-	return false
-}
-
-func (x *ChatStreamRequest) GetToolChoice() *structpb.Value {
-	if x != nil {
-		return x.ToolChoice
-	}
-	return nil
-}
-
-func (x *ChatStreamRequest) GetStreamOptions() *StreamOptions {
-	if x != nil {
-		return x.StreamOptions
-	}
-	return nil
-}
-
-// AgentStreamRequest 表示 Agent 流请求参数，保留 minichain 的请求字段。
+// AgentStreamRequest 表示 Agent 流请求，只保留用户输入文本。
 type AgentStreamRequest struct {
-	state                     protoimpl.MessageState  `protogen:"open.v1"`
-	Model                     string                  `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
-	Messages                  []*Message              `protobuf:"bytes,2,rep,name=messages,proto3" json:"messages,omitempty"`
-	SystemPrompt              string                  `protobuf:"bytes,3,opt,name=system_prompt,json=systemPrompt,proto3" json:"system_prompt,omitempty"`
-	ContextTrimTokenThreshold int64                   `protobuf:"varint,4,opt,name=context_trim_token_threshold,json=contextTrimTokenThreshold,proto3" json:"context_trim_token_threshold,omitempty"`
-	ContextKeepRecentRounds   int64                   `protobuf:"varint,5,opt,name=context_keep_recent_rounds,json=contextKeepRecentRounds,proto3" json:"context_keep_recent_rounds,omitempty"`
-	Temperature               *wrapperspb.DoubleValue `protobuf:"bytes,6,opt,name=temperature,proto3" json:"temperature,omitempty"`
-	TopP                      *wrapperspb.DoubleValue `protobuf:"bytes,7,opt,name=top_p,json=topP,proto3" json:"top_p,omitempty"`
-	MaxTokens                 *wrapperspb.Int32Value  `protobuf:"bytes,8,opt,name=max_tokens,json=maxTokens,proto3" json:"max_tokens,omitempty"`
-	Stop                      []string                `protobuf:"bytes,9,rep,name=stop,proto3" json:"stop,omitempty"`
-	PresencePenalty           *wrapperspb.DoubleValue `protobuf:"bytes,10,opt,name=presence_penalty,json=presencePenalty,proto3" json:"presence_penalty,omitempty"`
-	FrequencyPenalty          *wrapperspb.DoubleValue `protobuf:"bytes,11,opt,name=frequency_penalty,json=frequencyPenalty,proto3" json:"frequency_penalty,omitempty"`
-	Seed                      *wrapperspb.Int32Value  `protobuf:"bytes,12,opt,name=seed,proto3" json:"seed,omitempty"`
-	RequestTimeout            *durationpb.Duration    `protobuf:"bytes,13,opt,name=request_timeout,json=requestTimeout,proto3" json:"request_timeout,omitempty"`
-	DebugMessages             bool                    `protobuf:"varint,14,opt,name=debug_messages,json=debugMessages,proto3" json:"debug_messages,omitempty"`
-	Tools                     []*ToolDefinition       `protobuf:"bytes,15,rep,name=tools,proto3" json:"tools,omitempty"`
-	ParallelToolCalls         bool                    `protobuf:"varint,16,opt,name=parallel_tool_calls,json=parallelToolCalls,proto3" json:"parallel_tool_calls,omitempty"`
-	ToolChoice                *structpb.Value         `protobuf:"bytes,17,opt,name=tool_choice,json=toolChoice,proto3" json:"tool_choice,omitempty"`
-	StreamOptions             *StreamOptions          `protobuf:"bytes,18,opt,name=stream_options,json=streamOptions,proto3" json:"stream_options,omitempty"`
-	MaxReactRounds            int32                   `protobuf:"varint,19,opt,name=max_react_rounds,json=maxReactRounds,proto3" json:"max_react_rounds,omitempty"`
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AgentStreamRequest) Reset() {
@@ -688,137 +532,11 @@ func (*AgentStreamRequest) Descriptor() ([]byte, []int) {
 	return file_zhitongAgent_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *AgentStreamRequest) GetModel() string {
+func (x *AgentStreamRequest) GetMessage() string {
 	if x != nil {
-		return x.Model
+		return x.Message
 	}
 	return ""
-}
-
-func (x *AgentStreamRequest) GetMessages() []*Message {
-	if x != nil {
-		return x.Messages
-	}
-	return nil
-}
-
-func (x *AgentStreamRequest) GetSystemPrompt() string {
-	if x != nil {
-		return x.SystemPrompt
-	}
-	return ""
-}
-
-func (x *AgentStreamRequest) GetContextTrimTokenThreshold() int64 {
-	if x != nil {
-		return x.ContextTrimTokenThreshold
-	}
-	return 0
-}
-
-func (x *AgentStreamRequest) GetContextKeepRecentRounds() int64 {
-	if x != nil {
-		return x.ContextKeepRecentRounds
-	}
-	return 0
-}
-
-func (x *AgentStreamRequest) GetTemperature() *wrapperspb.DoubleValue {
-	if x != nil {
-		return x.Temperature
-	}
-	return nil
-}
-
-func (x *AgentStreamRequest) GetTopP() *wrapperspb.DoubleValue {
-	if x != nil {
-		return x.TopP
-	}
-	return nil
-}
-
-func (x *AgentStreamRequest) GetMaxTokens() *wrapperspb.Int32Value {
-	if x != nil {
-		return x.MaxTokens
-	}
-	return nil
-}
-
-func (x *AgentStreamRequest) GetStop() []string {
-	if x != nil {
-		return x.Stop
-	}
-	return nil
-}
-
-func (x *AgentStreamRequest) GetPresencePenalty() *wrapperspb.DoubleValue {
-	if x != nil {
-		return x.PresencePenalty
-	}
-	return nil
-}
-
-func (x *AgentStreamRequest) GetFrequencyPenalty() *wrapperspb.DoubleValue {
-	if x != nil {
-		return x.FrequencyPenalty
-	}
-	return nil
-}
-
-func (x *AgentStreamRequest) GetSeed() *wrapperspb.Int32Value {
-	if x != nil {
-		return x.Seed
-	}
-	return nil
-}
-
-func (x *AgentStreamRequest) GetRequestTimeout() *durationpb.Duration {
-	if x != nil {
-		return x.RequestTimeout
-	}
-	return nil
-}
-
-func (x *AgentStreamRequest) GetDebugMessages() bool {
-	if x != nil {
-		return x.DebugMessages
-	}
-	return false
-}
-
-func (x *AgentStreamRequest) GetTools() []*ToolDefinition {
-	if x != nil {
-		return x.Tools
-	}
-	return nil
-}
-
-func (x *AgentStreamRequest) GetParallelToolCalls() bool {
-	if x != nil {
-		return x.ParallelToolCalls
-	}
-	return false
-}
-
-func (x *AgentStreamRequest) GetToolChoice() *structpb.Value {
-	if x != nil {
-		return x.ToolChoice
-	}
-	return nil
-}
-
-func (x *AgentStreamRequest) GetStreamOptions() *StreamOptions {
-	if x != nil {
-		return x.StreamOptions
-	}
-	return nil
-}
-
-func (x *AgentStreamRequest) GetMaxReactRounds() int32 {
-	if x != nil {
-		return x.MaxReactRounds
-	}
-	return 0
 }
 
 // StreamResponse 表示服务端流事件，并在结束时携带完整 summary。
@@ -974,7 +692,7 @@ var File_zhitongAgent_proto protoreflect.FileDescriptor
 
 const file_zhitongAgent_proto_rawDesc = "" +
 	"\n" +
-	"\x12zhitongAgent.proto\x12\x0fzhitongagent.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\x93\x01\n" +
+	"\x12zhitongAgent.proto\x12\x0fzhitongagent.v1\x1a\x1cgoogle/protobuf/struct.proto\"\x93\x01\n" +
 	"\aMessage\x12\x12\n" +
 	"\x04role\x18\x01 \x01(\tR\x04role\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12 \n" +
@@ -1006,52 +724,11 @@ const file_zhitongAgent_proto_rawDesc = "" +
 	"\x11completion_tokens\x18\x02 \x01(\x03R\x10completionTokens\x12!\n" +
 	"\ftotal_tokens\x18\x03 \x01(\x03R\vtotalTokens\x12K\n" +
 	"\x15prompt_tokens_details\x18\x04 \x01(\v2\x17.google.protobuf.StructR\x13promptTokensDetails\x12S\n" +
-	"\x19completion_tokens_details\x18\x05 \x01(\v2\x17.google.protobuf.StructR\x17completionTokensDetails\"\xdc\a\n" +
-	"\x11ChatStreamRequest\x12\x14\n" +
-	"\x05model\x18\x01 \x01(\tR\x05model\x124\n" +
-	"\bmessages\x18\x02 \x03(\v2\x18.zhitongagent.v1.MessageR\bmessages\x12#\n" +
-	"\rsystem_prompt\x18\x03 \x01(\tR\fsystemPrompt\x12?\n" +
-	"\x1ccontext_trim_token_threshold\x18\x04 \x01(\x03R\x19contextTrimTokenThreshold\x12;\n" +
-	"\x1acontext_keep_recent_rounds\x18\x05 \x01(\x03R\x17contextKeepRecentRounds\x12>\n" +
-	"\vtemperature\x18\x06 \x01(\v2\x1c.google.protobuf.DoubleValueR\vtemperature\x121\n" +
-	"\x05top_p\x18\a \x01(\v2\x1c.google.protobuf.DoubleValueR\x04topP\x12:\n" +
-	"\n" +
-	"max_tokens\x18\b \x01(\v2\x1b.google.protobuf.Int32ValueR\tmaxTokens\x12\x12\n" +
-	"\x04stop\x18\t \x03(\tR\x04stop\x12G\n" +
-	"\x10presence_penalty\x18\n" +
-	" \x01(\v2\x1c.google.protobuf.DoubleValueR\x0fpresencePenalty\x12I\n" +
-	"\x11frequency_penalty\x18\v \x01(\v2\x1c.google.protobuf.DoubleValueR\x10frequencyPenalty\x12/\n" +
-	"\x04seed\x18\f \x01(\v2\x1b.google.protobuf.Int32ValueR\x04seed\x12B\n" +
-	"\x0frequest_timeout\x18\r \x01(\v2\x19.google.protobuf.DurationR\x0erequestTimeout\x12%\n" +
-	"\x0edebug_messages\x18\x0e \x01(\bR\rdebugMessages\x125\n" +
-	"\x05tools\x18\x0f \x03(\v2\x1f.zhitongagent.v1.ToolDefinitionR\x05tools\x12.\n" +
-	"\x13parallel_tool_calls\x18\x10 \x01(\bR\x11parallelToolCalls\x127\n" +
-	"\vtool_choice\x18\x11 \x01(\v2\x16.google.protobuf.ValueR\n" +
-	"toolChoice\x12E\n" +
-	"\x0estream_options\x18\x12 \x01(\v2\x1e.zhitongagent.v1.StreamOptionsR\rstreamOptions\"\x87\b\n" +
-	"\x12AgentStreamRequest\x12\x14\n" +
-	"\x05model\x18\x01 \x01(\tR\x05model\x124\n" +
-	"\bmessages\x18\x02 \x03(\v2\x18.zhitongagent.v1.MessageR\bmessages\x12#\n" +
-	"\rsystem_prompt\x18\x03 \x01(\tR\fsystemPrompt\x12?\n" +
-	"\x1ccontext_trim_token_threshold\x18\x04 \x01(\x03R\x19contextTrimTokenThreshold\x12;\n" +
-	"\x1acontext_keep_recent_rounds\x18\x05 \x01(\x03R\x17contextKeepRecentRounds\x12>\n" +
-	"\vtemperature\x18\x06 \x01(\v2\x1c.google.protobuf.DoubleValueR\vtemperature\x121\n" +
-	"\x05top_p\x18\a \x01(\v2\x1c.google.protobuf.DoubleValueR\x04topP\x12:\n" +
-	"\n" +
-	"max_tokens\x18\b \x01(\v2\x1b.google.protobuf.Int32ValueR\tmaxTokens\x12\x12\n" +
-	"\x04stop\x18\t \x03(\tR\x04stop\x12G\n" +
-	"\x10presence_penalty\x18\n" +
-	" \x01(\v2\x1c.google.protobuf.DoubleValueR\x0fpresencePenalty\x12I\n" +
-	"\x11frequency_penalty\x18\v \x01(\v2\x1c.google.protobuf.DoubleValueR\x10frequencyPenalty\x12/\n" +
-	"\x04seed\x18\f \x01(\v2\x1b.google.protobuf.Int32ValueR\x04seed\x12B\n" +
-	"\x0frequest_timeout\x18\r \x01(\v2\x19.google.protobuf.DurationR\x0erequestTimeout\x12%\n" +
-	"\x0edebug_messages\x18\x0e \x01(\bR\rdebugMessages\x125\n" +
-	"\x05tools\x18\x0f \x03(\v2\x1f.zhitongagent.v1.ToolDefinitionR\x05tools\x12.\n" +
-	"\x13parallel_tool_calls\x18\x10 \x01(\bR\x11parallelToolCalls\x127\n" +
-	"\vtool_choice\x18\x11 \x01(\v2\x16.google.protobuf.ValueR\n" +
-	"toolChoice\x12E\n" +
-	"\x0estream_options\x18\x12 \x01(\v2\x1e.zhitongagent.v1.StreamOptionsR\rstreamOptions\x12(\n" +
-	"\x10max_react_rounds\x18\x13 \x01(\x05R\x0emaxReactRounds\"\xbc\x04\n" +
+	"\x19completion_tokens_details\x18\x05 \x01(\v2\x17.google.protobuf.StructR\x17completionTokensDetails\"-\n" +
+	"\x11ChatStreamRequest\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\".\n" +
+	"\x12AgentStreamRequest\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"\xbc\x04\n" +
 	"\x0eStreamResponse\x12\x1d\n" +
 	"\n" +
 	"event_type\x18\x01 \x01(\tR\teventType\x12\x18\n" +
@@ -1090,21 +767,17 @@ func file_zhitongAgent_proto_rawDescGZIP() []byte {
 
 var file_zhitongAgent_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_zhitongAgent_proto_goTypes = []any{
-	(*Message)(nil),                // 0: zhitongagent.v1.Message
-	(*ToolCallFunction)(nil),       // 1: zhitongagent.v1.ToolCallFunction
-	(*ToolCall)(nil),               // 2: zhitongagent.v1.ToolCall
-	(*ToolFunction)(nil),           // 3: zhitongagent.v1.ToolFunction
-	(*ToolDefinition)(nil),         // 4: zhitongagent.v1.ToolDefinition
-	(*StreamOptions)(nil),          // 5: zhitongagent.v1.StreamOptions
-	(*Usage)(nil),                  // 6: zhitongagent.v1.Usage
-	(*ChatStreamRequest)(nil),      // 7: zhitongagent.v1.ChatStreamRequest
-	(*AgentStreamRequest)(nil),     // 8: zhitongagent.v1.AgentStreamRequest
-	(*StreamResponse)(nil),         // 9: zhitongagent.v1.StreamResponse
-	(*structpb.Struct)(nil),        // 10: google.protobuf.Struct
-	(*wrapperspb.DoubleValue)(nil), // 11: google.protobuf.DoubleValue
-	(*wrapperspb.Int32Value)(nil),  // 12: google.protobuf.Int32Value
-	(*durationpb.Duration)(nil),    // 13: google.protobuf.Duration
-	(*structpb.Value)(nil),         // 14: google.protobuf.Value
+	(*Message)(nil),            // 0: zhitongagent.v1.Message
+	(*ToolCallFunction)(nil),   // 1: zhitongagent.v1.ToolCallFunction
+	(*ToolCall)(nil),           // 2: zhitongagent.v1.ToolCall
+	(*ToolFunction)(nil),       // 3: zhitongagent.v1.ToolFunction
+	(*ToolDefinition)(nil),     // 4: zhitongagent.v1.ToolDefinition
+	(*StreamOptions)(nil),      // 5: zhitongagent.v1.StreamOptions
+	(*Usage)(nil),              // 6: zhitongagent.v1.Usage
+	(*ChatStreamRequest)(nil),  // 7: zhitongagent.v1.ChatStreamRequest
+	(*AgentStreamRequest)(nil), // 8: zhitongagent.v1.AgentStreamRequest
+	(*StreamResponse)(nil),     // 9: zhitongagent.v1.StreamResponse
+	(*structpb.Struct)(nil),    // 10: google.protobuf.Struct
 }
 var file_zhitongAgent_proto_depIdxs = []int32{
 	2,  // 0: zhitongagent.v1.Message.tool_calls:type_name -> zhitongagent.v1.ToolCall
@@ -1113,42 +786,20 @@ var file_zhitongAgent_proto_depIdxs = []int32{
 	3,  // 3: zhitongagent.v1.ToolDefinition.function:type_name -> zhitongagent.v1.ToolFunction
 	10, // 4: zhitongagent.v1.Usage.prompt_tokens_details:type_name -> google.protobuf.Struct
 	10, // 5: zhitongagent.v1.Usage.completion_tokens_details:type_name -> google.protobuf.Struct
-	0,  // 6: zhitongagent.v1.ChatStreamRequest.messages:type_name -> zhitongagent.v1.Message
-	11, // 7: zhitongagent.v1.ChatStreamRequest.temperature:type_name -> google.protobuf.DoubleValue
-	11, // 8: zhitongagent.v1.ChatStreamRequest.top_p:type_name -> google.protobuf.DoubleValue
-	12, // 9: zhitongagent.v1.ChatStreamRequest.max_tokens:type_name -> google.protobuf.Int32Value
-	11, // 10: zhitongagent.v1.ChatStreamRequest.presence_penalty:type_name -> google.protobuf.DoubleValue
-	11, // 11: zhitongagent.v1.ChatStreamRequest.frequency_penalty:type_name -> google.protobuf.DoubleValue
-	12, // 12: zhitongagent.v1.ChatStreamRequest.seed:type_name -> google.protobuf.Int32Value
-	13, // 13: zhitongagent.v1.ChatStreamRequest.request_timeout:type_name -> google.protobuf.Duration
-	4,  // 14: zhitongagent.v1.ChatStreamRequest.tools:type_name -> zhitongagent.v1.ToolDefinition
-	14, // 15: zhitongagent.v1.ChatStreamRequest.tool_choice:type_name -> google.protobuf.Value
-	5,  // 16: zhitongagent.v1.ChatStreamRequest.stream_options:type_name -> zhitongagent.v1.StreamOptions
-	0,  // 17: zhitongagent.v1.AgentStreamRequest.messages:type_name -> zhitongagent.v1.Message
-	11, // 18: zhitongagent.v1.AgentStreamRequest.temperature:type_name -> google.protobuf.DoubleValue
-	11, // 19: zhitongagent.v1.AgentStreamRequest.top_p:type_name -> google.protobuf.DoubleValue
-	12, // 20: zhitongagent.v1.AgentStreamRequest.max_tokens:type_name -> google.protobuf.Int32Value
-	11, // 21: zhitongagent.v1.AgentStreamRequest.presence_penalty:type_name -> google.protobuf.DoubleValue
-	11, // 22: zhitongagent.v1.AgentStreamRequest.frequency_penalty:type_name -> google.protobuf.DoubleValue
-	12, // 23: zhitongagent.v1.AgentStreamRequest.seed:type_name -> google.protobuf.Int32Value
-	13, // 24: zhitongagent.v1.AgentStreamRequest.request_timeout:type_name -> google.protobuf.Duration
-	4,  // 25: zhitongagent.v1.AgentStreamRequest.tools:type_name -> zhitongagent.v1.ToolDefinition
-	14, // 26: zhitongagent.v1.AgentStreamRequest.tool_choice:type_name -> google.protobuf.Value
-	5,  // 27: zhitongagent.v1.AgentStreamRequest.stream_options:type_name -> zhitongagent.v1.StreamOptions
-	2,  // 28: zhitongagent.v1.StreamResponse.tool_calls:type_name -> zhitongagent.v1.ToolCall
-	6,  // 29: zhitongagent.v1.StreamResponse.usage:type_name -> zhitongagent.v1.Usage
-	10, // 30: zhitongagent.v1.StreamResponse.additional_kwargs:type_name -> google.protobuf.Struct
-	10, // 31: zhitongagent.v1.StreamResponse.response_metadata:type_name -> google.protobuf.Struct
-	10, // 32: zhitongagent.v1.StreamResponse.usage_metadata:type_name -> google.protobuf.Struct
-	7,  // 33: zhitongagent.v1.ZhitongAgent.ChatStream:input_type -> zhitongagent.v1.ChatStreamRequest
-	8,  // 34: zhitongagent.v1.ZhitongAgent.AgentStream:input_type -> zhitongagent.v1.AgentStreamRequest
-	9,  // 35: zhitongagent.v1.ZhitongAgent.ChatStream:output_type -> zhitongagent.v1.StreamResponse
-	9,  // 36: zhitongagent.v1.ZhitongAgent.AgentStream:output_type -> zhitongagent.v1.StreamResponse
-	35, // [35:37] is the sub-list for method output_type
-	33, // [33:35] is the sub-list for method input_type
-	33, // [33:33] is the sub-list for extension type_name
-	33, // [33:33] is the sub-list for extension extendee
-	0,  // [0:33] is the sub-list for field type_name
+	2,  // 6: zhitongagent.v1.StreamResponse.tool_calls:type_name -> zhitongagent.v1.ToolCall
+	6,  // 7: zhitongagent.v1.StreamResponse.usage:type_name -> zhitongagent.v1.Usage
+	10, // 8: zhitongagent.v1.StreamResponse.additional_kwargs:type_name -> google.protobuf.Struct
+	10, // 9: zhitongagent.v1.StreamResponse.response_metadata:type_name -> google.protobuf.Struct
+	10, // 10: zhitongagent.v1.StreamResponse.usage_metadata:type_name -> google.protobuf.Struct
+	7,  // 11: zhitongagent.v1.ZhitongAgent.ChatStream:input_type -> zhitongagent.v1.ChatStreamRequest
+	8,  // 12: zhitongagent.v1.ZhitongAgent.AgentStream:input_type -> zhitongagent.v1.AgentStreamRequest
+	9,  // 13: zhitongagent.v1.ZhitongAgent.ChatStream:output_type -> zhitongagent.v1.StreamResponse
+	9,  // 14: zhitongagent.v1.ZhitongAgent.AgentStream:output_type -> zhitongagent.v1.StreamResponse
+	13, // [13:15] is the sub-list for method output_type
+	11, // [11:13] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_zhitongAgent_proto_init() }
